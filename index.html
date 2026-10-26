@@ -4,26 +4,65 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Расписание УКСиВТ</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<meta name="theme-color" content="#f4f6fb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Расписание">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script>
+// Скрипт Telegram нужен только внутри Telegram: в обычном браузере его не грузим (быстрее, работает офлайн).
+// Грузим в фоне и ждём не дольше 3 секунд: если telegram.org недоступен, приложение всё равно откроется.
+window.__tgReady = new Promise(function (resolve) {
+  if (!/tgWebAppData|tgWebAppVersion/.test(location.hash)) return resolve();
+  var s = document.createElement("script");
+  s.src = "https://telegram.org/js/telegram-web-app.js"; s.async = true;
+  s.onload = s.onerror = function () { resolve(); };
+  setTimeout(resolve, 3000);
+  document.head.appendChild(s);
+});
+</script>
 <style>
+:root { --fb-bg:#f4f6fb; --fb-card:#ffffff; --fb-text:#0f172a; --fb-hint:#64748b; --fb-accent:#2563eb; --fb-accent-text:#ffffff;
+  --fb-line:rgba(100,116,139,.22); --fb-soft:#e4ebfd; --fb-warn-bg:#fdeadf; --fb-glow:rgba(37,99,235,.4); --fb-bar:rgba(244,246,251,.9); }
+@media (prefers-color-scheme: dark) {
+  :root { --fb-bg:#0b1220; --fb-card:#16213a; --fb-text:#f1f5f9; --fb-hint:#94a3b8; --fb-accent:#3b82f6;
+    --fb-line:rgba(148,163,184,.2); --fb-soft:#1c2a4d; --fb-warn-bg:#2b1f1b; --fb-glow:rgba(59,130,246,.45); --fb-bar:rgba(11,18,32,.9); }
+}
 :root {
-  --bg: var(--tg-theme-bg-color, #f4f6fb);
-  --card: var(--tg-theme-secondary-bg-color, #ffffff);
-  --text: var(--tg-theme-text-color, #0f172a);
-  --hint: var(--tg-theme-hint-color, #64748b);
-  --accent: var(--tg-theme-button-color, #2563eb);
-  --accent-text: var(--tg-theme-button-text-color, #ffffff);
-  --line: color-mix(in srgb, var(--text) 10%, transparent);
-  --soft: color-mix(in srgb, var(--accent) 12%, var(--card));
+  --bg: var(--tg-theme-bg-color, var(--fb-bg));
+  --card: var(--tg-theme-secondary-bg-color, var(--fb-card));
+  --text: var(--tg-theme-text-color, var(--fb-text));
+  --hint: var(--tg-theme-hint-color, var(--fb-hint));
+  --accent: var(--tg-theme-button-color, var(--fb-accent));
+  --accent-text: var(--tg-theme-button-text-color, var(--fb-accent-text));
+  --line: var(--fb-line);
+  --soft: var(--fb-soft);
+  --glow: var(--fb-glow);
+  --bar: var(--fb-bar);
   --warn: #ea580c;
-  --warn-bg: color-mix(in srgb, #ea580c 12%, var(--card));
+  --warn-bg: var(--fb-warn-bg);
   --bad: #dc2626;
   --ok: #16a34a;
 }
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+  :root {   /* где поддерживается color-mix, цвета подстраиваются под тему Telegram */
+    --line: color-mix(in srgb, var(--text) 10%, transparent);
+    --soft: color-mix(in srgb, var(--accent) 12%, var(--card));
+    --warn-bg: color-mix(in srgb, #ea580c 12%, var(--card));
+    --glow: color-mix(in srgb, var(--accent) 40%, transparent);
+    --bar: color-mix(in srgb, var(--bg) 88%, transparent);
+  }
+}
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+button, a, .day, .res { touch-action: manipulation; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; background: var(--bg); color: var(--text);
   font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-body { padding: 0 16px calc(84px + env(safe-area-inset-bottom)); max-width: 720px; margin: 0 auto; }
+body { padding: 0 16px 84px; padding: 0 max(16px, env(safe-area-inset-right)) calc(84px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); max-width: 720px; margin: 0 auto; }
 button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
 h1 { font-size: 26px; margin: 18px 0 2px; letter-spacing: -0.02em; }
 .sub { color: var(--hint); font-size: 13px; }
@@ -46,7 +85,7 @@ h1 { font-size: 26px; margin: 18px 0 2px; letter-spacing: -0.02em; }
 .day small { display: block; font-size: 11px; color: var(--hint); font-weight: 600; }
 .day b { font-size: 17px; }
 .day.today small { color: var(--accent); }
-.day.sel { background: var(--accent); color: var(--accent-text); box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 40%, transparent); }
+.day.sel { background: var(--accent); color: var(--accent-text); box-shadow: 0 4px 14px var(--glow); }
 .day.sel small { color: inherit; opacity: .85; }
 .day .dot { position: absolute; top: 5px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); }
 
@@ -71,12 +110,12 @@ h1 { font-size: 26px; margin: 18px 0 2px; letter-spacing: -0.02em; }
 .empty { text-align: center; color: var(--hint); padding: 40px 0; }
 
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 4px; justify-content: center;
-  padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(14px); border-top: 1px solid var(--line); }
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); background: var(--bar); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-top: 1px solid var(--line); }
 .tabbar button { flex: 1; max-width: 160px; padding: 9px 4px; border-radius: 12px; font-size: 12px; font-weight: 600; color: var(--hint); }
 .tabbar button span { display: block; font-size: 19px; line-height: 1.1; }
 .tabbar button.on { background: var(--soft); color: var(--accent); }
 
-.sheet { position: fixed; inset: 0; background: var(--bg); z-index: 10; padding: 16px; overflow: auto; display: none; }
+.sheet { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: var(--bg); z-index: 10; padding: 16px; overflow: auto; display: none; }
 .sheet.open { display: block; }
 .sheet .in { max-width: 720px; margin: 0 auto; }
 .sheet input { width: 100%; padding: 14px 16px; font: inherit; font-size: 17px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); color: var(--text); outline: none; }
@@ -97,6 +136,34 @@ h1 { font-size: 26px; margin: 18px 0 2px; letter-spacing: -0.02em; }
 .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .2s; }
 .sw.on { background: var(--accent); } .sw.on::after { transform: translateX(18px); }
 .primary { background: var(--accent); color: var(--accent-text); border-radius: 14px; padding: 13px 18px; font-weight: 700; width: 100%; margin-top: 8px; }
+
+/* ---- размеры экрана ---- */
+.daycard { }
+@media (max-width: 359px) {            /* маленькие телефоны */
+  h1 { font-size: 22px; }
+  .day b { font-size: 15px; } .day small { font-size: 10px; }
+  .lesson { grid-template-columns: 22px 62px 1fr; gap: 4px; }
+  .lesson .ti { font-size: 15px; }
+  .tabbar button { font-size: 10.5px; padding: 8px 2px; } .tabbar button span { font-size: 17px; }
+  .status .v { font-size: 16px; }
+}
+@media (min-width: 600px) {            /* планшеты и крупные телефоны */
+  body { max-width: 820px; }
+  h1 { font-size: 30px; }
+  .lesson .ti { font-size: 17px; } .lesson { grid-template-columns: 34px 92px 1fr; padding: 16px 6px; }
+  .status .v { font-size: 20px; }
+}
+@media (min-width: 1000px) {           /* компьютеры: неделя — сеткой дней */
+  body { max-width: 1080px; }
+  #body.weekgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; align-items: start; margin-top: 12px; }
+  .daycard { background: var(--card); border-radius: 18px; padding: 0 16px 10px; }
+  .daycard .sec { margin-top: 14px; }
+}
+@media (max-height: 480px) and (orientation: landscape) {   /* телефон на боку */
+  .tabbar { padding-top: 4px; padding-bottom: calc(4px + env(safe-area-inset-bottom)); }
+  .tabbar button { padding: 5px 4px; } .tabbar button span { display: inline; font-size: 16px; margin-right: 6px; }
+  .status { margin: 8px 0; padding: 10px 14px; } h1 { margin-top: 10px; }
+}
 </style>
 </head>
 <body>
@@ -111,8 +178,7 @@ h1 { font-size: 26px; margin: 18px 0 2px; letter-spacing: -0.02em; }
 
 <script>
 "use strict";
-const tg = window.Telegram && Telegram.WebApp;
-if (tg) { tg.ready(); tg.expand(); }
+let tg = null;   // объект Telegram.WebApp — появляется, только если скрипт Telegram загрузился (см. конец файла)
 
 const WD = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
 const WD_FULL = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота","Воскресенье"];
@@ -121,6 +187,19 @@ const ICON = {group:"👥", teacher:"👤", room:"🚪"};
 const KIND = {group:"группа", teacher:"преподаватель", room:"кабинет"};
 const MODE_OF = {g:"group", t:"teacher", r:"room"};
 const STALE_AFTER_MIN = 90;   // данные старше — предупреждаем
+
+const IN_TG = /tgWebAppData|tgWebAppVersion/.test(location.hash);                          // внутри Telegram или в обычном браузере/на экране «Домой»
+const BOT_URL = "https://t.me/raspisanie25p7bot";
+const UA = navigator.userAgent;
+const IS_IOS = /iphone|ipad|ipod/i.test(UA) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);   // iPadOS называет себя Mac
+const IS_ANDROID = /android/i.test(UA);
+const IS_SAFARI = /safari/i.test(UA) && !/chrome|crios|fxios|edgios|opr\/|android/i.test(UA);
+const INSTALLED = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+document.documentElement.classList.add(IN_TG ? "is-tg" : "is-web", IS_IOS ? "is-ios" : IS_ANDROID ? "is-android" : "is-desktop", IS_SAFARI ? "is-safari" : "not-safari");
+let installPrompt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installPrompt = e; if (S.tab === "me") render(); });
+window.addEventListener("online", () => render());
+window.addEventListener("offline", () => render());
 
 const S = { me:null, target:null, date:null, week:null, tab:"day", bells:null, dir:null, meta:null, err:null };
 
@@ -145,7 +224,10 @@ const hhmm = d => String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinut
 
 // Время колледжа (Уфа, UTC+5), а не часовой пояс телефона.
 function nowLocal() {
-  return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Yekaterinburg" }));
+  const p = {};
+  for (const x of new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Yekaterinburg", year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).formatToParts(new Date())) p[x.type] = x.value;
+  return new Date(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute, +p.second);
 }
 
 // ---------- хранение выбранной группы: в Telegram, запасной вариант — localStorage ----------
@@ -153,13 +235,16 @@ function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return n
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 function saved(key) {
   return new Promise(resolve => {
+    // Если Telegram не ответил за 1,5 с, берём локальную копию — иначе страница зависла бы на загрузке.
+    const timer = setTimeout(() => resolve(lsGet(key)), 1500);
+    const done = v => { clearTimeout(timer); resolve(v); };
     try {
       if (tg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast("6.9")) {
-        tg.CloudStorage.getItem(key, (err, v) => resolve(!err && v ? v : lsGet(key)));
+        tg.CloudStorage.getItem(key, (err, v) => done(!err && v ? v : lsGet(key)));
         return;
       }
     } catch (e) {}
-    resolve(lsGet(key));
+    done(lsGet(key));
   });
 }
 function save(key, value) {
@@ -315,9 +400,10 @@ function weekView() {
   const out = [], mode = S.week.mode;
   for (const day of S.week.days) {
     const d = parseISO(day.date);
-    out.push(h("div", {class:"sec"}, `${WD_FULL[(d.getDay()+6)%7]}, ${d.getDate()}.${String(d.getMonth()+1).padStart(2,"0")}`));
-    if (!day.lessons.length) out.push(h("div", {class:"sub", style:"padding:4px"}, "—"));
-    else out.push(...sortedLessons(day).map(l => lessonRow(l, mode, false, 0)));
+    const card = [h("div", {class:"sec"}, `${WD_FULL[(d.getDay()+6)%7]}, ${d.getDate()}.${String(d.getMonth()+1).padStart(2,"0")}`)];
+    if (!day.lessons.length) card.push(h("div", {class:"sub", style:"padding:4px"}, "—"));
+    else card.push(...sortedLessons(day).map(l => lessonRow(l, mode, false, 0)));
+    out.push(h("div", {class:"daycard"}, card));
   }
   return out;
 }
@@ -352,13 +438,46 @@ function settingsView() {
   const me = S.me || {};
   const u = S.meta && S.meta.updated_at ? new Date(S.meta.updated_at) : null;
   const out = [h("div", {class:"sec"}, "Моя группа"), h("div", {class:"sub"}, me.title || "не выбрана"),
-    h("button", {class:"primary", onclick:() => openSearch("Найди свою группу", true)}, "Выбрать группу"),
-    h("div", {class:"sec"}, "Уведомления"),
-    h("div", {class:"sub"}, "О заменах бот пишет в чат. Включить или выключить: команда /notify в боте."),
-    h("div", {class:"sec"}, "Данные"),
-    h("div", {class:"sub"}, u && !isNaN(u) ? `Расписание обновлено ${u.getDate()}.${String(u.getMonth()+1).padStart(2,"0")} в ${hhmm(u)} (время колледжа).` : "Время обновления неизвестно.")];
+    h("button", {class:"primary", onclick:() => openSearch("Найди свою группу", true)}, "Выбрать группу")];
+
+  if (S.target && !IN_TG) {
+    const link = location.origin + location.pathname + "?t=" + S.target;
+    out.push(h("div", {class:"sec"}, "Поделиться"), h("div", {class:"sub"}, "Ссылка откроет это расписание сразу, без выбора группы."),
+      h("button", {class:"primary", style:"background:var(--soft);color:var(--accent)", onclick:() => shareLink(link)}, "Поделиться расписанием «" + (titleOf(S.target) || "") + "»"));
+  }
+
+  if (!IN_TG && !INSTALLED) {
+    out.push(h("div", {class:"sec"}, "Как приложение на телефоне"));
+    if (installPrompt) {
+      out.push(h("div", {class:"sub"}, "Откроется отдельно, с иконкой на экране, и будет работать без интернета."),
+        h("button", {class:"primary", onclick:async () => { installPrompt.prompt(); await installPrompt.userChoice.catch(() => {}); installPrompt = null; render(); }}, "Установить"));
+    } else if (IS_IOS) {
+      out.push(h("div", {class:"sub"}, IS_SAFARI
+        ? "Нажми «Поделиться» (квадрат со стрелкой) → «На экран “Домой”». Откроется отдельно, с иконкой, и будет работать без интернета."
+        : "Нажми «Поделиться» → «На экран “Домой”». Если такого пункта нет, открой этот сайт в Safari и повтори."));
+    } else if (IS_SAFARI) {
+      out.push(h("div", {class:"sub"}, "Safari на Mac: меню «Файл» → «Добавить в Dock». Откроется отдельным окном и будет работать без интернета."));
+    } else {
+      out.push(h("div", {class:"sub"}, "В меню браузера (⋮) выбери «Установить приложение» или «Добавить на главный экран»."));
+    }
+  }
+
+  out.push(h("div", {class:"sec"}, "Уведомления о заменах"));
+  if (IN_TG) out.push(h("div", {class:"sub"}, "Бот пишет в чат, когда замены меняются. Включить или выключить: команда /notify в боте."));
+  else out.push(h("div", {class:"sub"}, "Сайт сам не присылает уведомления. О новых заменах пишет Telegram-бот: открой его, выбери группу и включи /notify."),
+    h("a", {class:"primary", href:BOT_URL, target:"_blank", rel:"noopener", style:"display:block;text-align:center;text-decoration:none;background:var(--soft);color:var(--accent)"}, "Открыть бота в Telegram"));
+
+  out.push(h("div", {class:"sec"}, "Данные"),
+    h("div", {class:"sub"}, u && !isNaN(u) ? `Расписание обновлено ${u.getDate()}.${String(u.getMonth()+1).padStart(2,"0")} в ${hhmm(u)} (время колледжа).` : "Время обновления неизвестно."));
   if (tg && tg.close) out.push(h("button", {class:"primary", style:"background:var(--soft);color:var(--accent)", onclick:() => tg.close()}, "Вернуться в чат"));
   return out;
+}
+async function shareLink(link) {
+  try {
+    if (navigator.share) { await navigator.share({ title: "Расписание " + (titleOf(S.target) || ""), url: link }); return; }
+    await navigator.clipboard.writeText(link);
+    alert("Ссылка скопирована");
+  } catch (e) { /* пользователь закрыл окно «Поделиться» */ }
 }
 
 // ---------- поиск по справочнику (в самой странице) ----------
@@ -412,13 +531,14 @@ function render() {
   if (S.target && S.target !== own && own) kids.push(h("button", {class:"chip", style:"margin:10px 0 0", onclick:() => openTarget(own)}, "↩ Моё расписание"));
 
   const needsWeek = ["day","week","subs"].includes(S.tab);
+  if (navigator.onLine === false) kids.push(h("div", {class:"banner"}, "Нет интернета — показываю сохранённое расписание."));
   const stale = needsWeek ? staleText() : null;
   if (stale) kids.push(h("div", {class:"banner"}, stale));
   if (S.tab === "day" && S.week) kids.push(statusCard());
   if (needsWeek && S.target) kids.push(weekNav());
   if (S.tab === "day" && S.target && S.week) kids.push(dayTabs());
 
-  const body = h("div", {id:"body"});
+  const body = h("div", {id:"body", class: S.tab === "week" ? "weekgrid" : ""});
   if (S.err && needsWeek) body.append(h("div", {class:"banner"}, S.err));
   else if (needsWeek && S.target && !S.week) body.append(h("div", {class:"empty"}, "Загружаю…"));
   else if (!S.target && needsWeek) body.append(h("div", {class:"empty"}, "Выбери свою группу в «Профиле»"));
@@ -446,10 +566,22 @@ async function start() {
   ]);
   S.dir = dir; S.meta = meta;
   try { S.me = me ? JSON.parse(me) : null; } catch (e) { S.me = null; }
-  if (S.me && S.me.target) openTarget(S.me.target);
+  // ссылка вида ?t=g52 открывает конкретное расписание и ничего не запоминает
+  const want = new URLSearchParams(location.search).get("t");
+  if (want && /^[gtr]\d{1,4}$/.test(want) && (!S.dir || titleOf(want))) openTarget(want);
+  else if (S.me && S.me.target) openTarget(S.me.target);
   else { S.tab = "day"; render(); openSearch("Привет! Найди свою группу, например 25П-7", true); }
 }
-start();
+// Сначала даём скрипту Telegram шанс загрузиться (макс. 3 с), потом запускаем приложение.
+(window.__tgReady || Promise.resolve()).then(() => {
+  tg = (window.Telegram && Telegram.WebApp) || null;
+  if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
+  return start();
+});
+// Офлайн-режим: сервис-воркер хранит страницу и недели, которые ты открывал (в Telegram не нужен).
+if (!IN_TG && "serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  window.addEventListener("load", () => { try { navigator.serviceWorker.register("sw.js").catch(() => {}); } catch (e) {} });
+}
 </script>
 </body>
 </html>
