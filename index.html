@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Расписание УКСиВТ</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --bg: var(--tg-theme-bg-color, #f4f6fb);
+  --card: var(--tg-theme-secondary-bg-color, #ffffff);
+  --text: var(--tg-theme-text-color, #0f172a);
+  --hint: var(--tg-theme-hint-color, #64748b);
+  --accent: var(--tg-theme-button-color, #2563eb);
+  --accent-text: var(--tg-theme-button-text-color, #ffffff);
+  --line: color-mix(in srgb, var(--text) 10%, transparent);
+  --soft: color-mix(in srgb, var(--accent) 12%, var(--card));
+  --warn: #ea580c;
+  --warn-bg: color-mix(in srgb, #ea580c 12%, var(--card));
+  --bad: #dc2626;
+  --ok: #16a34a;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+body { padding: 0 16px calc(84px + env(safe-area-inset-bottom)); max-width: 720px; margin: 0 auto; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+h1 { font-size: 26px; margin: 18px 0 2px; letter-spacing: -0.02em; }
+.sub { color: var(--hint); font-size: 13px; }
+.topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.chip { background: var(--soft); color: var(--accent); border-radius: 999px; padding: 8px 14px; font-weight: 600; font-size: 14px; white-space: nowrap; margin-top: 18px; }
+
+.status { margin: 14px 0; padding: 16px 18px; border-radius: 20px; background: var(--soft); position: relative; overflow: hidden; }
+.status .k { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--hint); }
+.status .v { font-size: 18px; font-weight: 700; margin-top: 4px; }
+.status .s { color: var(--hint); font-size: 13px; margin-top: 2px; }
+.status .bar { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--accent); transition: width .4s; }
+
+.weeknav { display: flex; align-items: center; gap: 8px; margin: 6px 0 10px; }
+.weeknav .arrow { width: 40px; height: 40px; border-radius: 12px; background: var(--soft); color: var(--accent); font-size: 18px; flex: none; }
+.weeknav .mid { flex: 1; text-align: center; font-weight: 600; font-size: 14px; }
+.weeknav .mid small { display: block; color: var(--hint); font-weight: 500; font-size: 12px; }
+
+.days { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; background: var(--card); border-radius: 18px; padding: 6px; }
+.day { padding: 8px 0 7px; border-radius: 13px; text-align: center; position: relative; }
+.day small { display: block; font-size: 11px; color: var(--hint); font-weight: 600; }
+.day b { font-size: 17px; }
+.day.today small { color: var(--accent); }
+.day.sel { background: var(--accent); color: var(--accent-text); box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 40%, transparent); }
+.day.sel small { color: inherit; opacity: .85; }
+.day .dot { position: absolute; top: 5px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); }
+
+.dayhead { display: flex; justify-content: space-between; align-items: baseline; margin: 20px 2px 4px; }
+.dayhead h2 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
+.dayhead span { color: var(--hint); font-size: 13px; font-weight: 600; }
+
+.lesson { display: grid; grid-template-columns: 28px 78px 1fr; gap: 6px; padding: 14px 4px; border-bottom: 1px solid var(--line); }
+.lesson:last-child { border-bottom: 0; }
+.lesson .n { font-weight: 800; font-size: 18px; color: var(--hint); }
+.lesson .t { color: var(--hint); font-size: 13px; line-height: 1.25; padding-top: 3px; }
+.lesson .t i { display: block; font-style: normal; color: var(--warn); font-size: 11px; }
+.lesson .ti { font-weight: 700; font-size: 16px; }
+.lesson .me { color: var(--hint); font-size: 13px; margin-top: 3px; }
+.lesson.now { background: var(--soft); border-radius: 14px; padding-left: 10px; padding-right: 10px; border-bottom-color: transparent; }
+.lesson.now .n { color: var(--accent); }
+.lesson.past { opacity: .5; }
+.lesson.cancel .ti { text-decoration: line-through; color: var(--hint); }
+.swap { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--warn-bg); border-left: 3px solid var(--warn); font-size: 13px; }
+.swap s { color: var(--hint); }
+.swap .tag { color: var(--warn); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; display: block; }
+.empty { text-align: center; color: var(--hint); padding: 40px 0; }
+
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 4px; justify-content: center;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(14px); border-top: 1px solid var(--line); }
+.tabbar button { flex: 1; max-width: 160px; padding: 9px 4px; border-radius: 12px; font-size: 12px; font-weight: 600; color: var(--hint); }
+.tabbar button span { display: block; font-size: 19px; line-height: 1.1; }
+.tabbar button.on { background: var(--soft); color: var(--accent); }
+
+.sheet { position: fixed; inset: 0; background: var(--bg); z-index: 10; padding: 16px; overflow: auto; display: none; }
+.sheet.open { display: block; }
+.sheet .in { max-width: 720px; margin: 0 auto; }
+.sheet input { width: 100%; padding: 14px 16px; font: inherit; font-size: 17px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); color: var(--text); outline: none; }
+.sheet input:focus { border-color: var(--accent); }
+.res { display: flex; align-items: center; gap: 12px; padding: 13px 10px; border-bottom: 1px solid var(--line); width: 100%; text-align: left; }
+.res .ic { font-size: 20px; }
+.res .nm { font-weight: 600; }
+.res .kd { color: var(--hint); font-size: 12px; }
+.close { float: right; color: var(--accent); font-weight: 600; padding: 6px 0 14px 12px; }
+
+.bell { display: flex; justify-content: space-between; padding: 10px 4px; border-bottom: 1px solid var(--line); }
+.bell small { color: var(--hint); display: block; font-size: 12px; }
+.sec { margin: 20px 2px 6px; font-weight: 700; font-size: 17px; }
+.sec em { font-style: normal; color: var(--accent); font-size: 12px; margin-left: 8px; }
+.banner { background: var(--warn-bg); border-radius: 12px; padding: 10px 12px; margin: 10px 0; font-size: 13px; }
+.toggle { display: flex; justify-content: space-between; align-items: center; padding: 14px 4px; }
+.sw { width: 46px; height: 28px; border-radius: 999px; background: var(--line); position: relative; flex: none; transition: background .2s; }
+.sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .2s; }
+.sw.on { background: var(--accent); } .sw.on::after { transform: translateX(18px); }
+.primary { background: var(--accent); color: var(--accent-text); border-radius: 14px; padding: 13px 18px; font-weight: 700; width: 100%; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="sheet" id="sheet"><div class="in">
+  <button class="close" id="sheetClose">Закрыть</button>
+  <div id="sheetHint" class="sub" style="margin-bottom:8px"></div>
+  <input id="q" placeholder="Группа, преподаватель или кабинет" autocomplete="off" autocapitalize="off" spellcheck="false">
+  <div id="results"></div>
+</div></div>
+<nav class="tabbar" id="tabs"></nav>
+
+<script>
+"use strict";
+const tg = window.Telegram && Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+const WD = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+const WD_FULL = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота","Воскресенье"];
+const MON = ["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"];
+const ICON = {group:"👥", teacher:"👤", room:"🚪"};
+const KIND = {group:"группа", teacher:"преподаватель", room:"кабинет"};
+const MODE_OF = {g:"group", t:"teacher", r:"room"};
+const STALE_AFTER_MIN = 90;   // данные старше — предупреждаем
+
+const S = { me:null, target:null, date:null, week:null, tab:"day", bells:null, dir:null, meta:null, err:null };
+
+// ---------- мелочи ----------
+// Всё, что пришло извне, вставляем только через textContent.
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) el.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(kid));
+  return el;
+}
+const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const parseISO = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate()+n); return r; };
+const mins = t => { const [a,b] = t.split(":").map(Number); return a*60+b; };
+const mondayOf = d => addDays(d, -((d.getDay()+6)%7));
+const hhmm = d => String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+
+// Время колледжа (Уфа, UTC+5), а не часовой пояс телефона.
+function nowLocal() {
+  return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Yekaterinburg" }));
+}
+
+// ---------- хранение выбранной группы: в Telegram, запасной вариант — localStorage ----------
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function saved(key) {
+  return new Promise(resolve => {
+    try {
+      if (tg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast("6.9")) {
+        tg.CloudStorage.getItem(key, (err, v) => resolve(!err && v ? v : lsGet(key)));
+        return;
+      }
+    } catch (e) {}
+    resolve(lsGet(key));
+  });
+}
+function save(key, value) {
+  lsSet(key, value);
+  try { if (tg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast("6.9")) tg.CloudStorage.setItem(key, value); } catch (e) {}
+}
+
+// ---------- данные (готовые файлы рядом со страницей) ----------
+class NotPublished extends Error {}
+async function getJSON(path) {
+  const r = await fetch(path, { cache: "no-cache" });
+  if (r.status === 404) throw new NotPublished(path);
+  if (!r.ok) throw new Error(String(r.status));
+  return r.json();
+}
+function errText(e) {
+  if (e instanceof NotPublished) return "Это расписание ещё не опубликовано. Данные обновляются от нескольких минут до часа — попробуй позже.";
+  return "Не получилось загрузить расписание. Проверь интернет и попробуй ещё раз.";
+}
+
+async function loadWeek(target, date) {
+  S.week = await getJSON(`data/w/${encodeURIComponent(target)}/${iso(mondayOf(date))}.json`);
+}
+
+async function openTarget(target, date) {
+  S.target = target; S.date = date || todayDate(); S.err = null; S.week = null;
+  render();
+  try { await loadWeek(target, S.date); } catch (e) { S.err = errText(e); }
+  render();
+}
+function todayDate() { const n = nowLocal(); const d = new Date(n.getFullYear(), n.getMonth(), n.getDate()); return d.getDay() === 0 ? addDays(d, 1) : d; }
+
+async function shiftWeek(delta) {
+  S.date = addDays(S.date, 7*delta); S.week = null; S.err = null; render();
+  try { await loadWeek(S.target, S.date); } catch (e) { S.err = errText(e); }
+  render();
+}
+async function pickDay(d) {
+  S.date = d;
+  if (!S.week || mondayOf(d).getTime() !== parseISO(S.week.week_start).getTime()) {
+    S.week = null; S.err = null; render();
+    try { await loadWeek(S.target, d); } catch (e) { S.err = errText(e); }
+  }
+  render();
+}
+
+// ---------- расчёты ----------
+function dayData(dateObj) { return S.week && S.week.days.find(x => x.date === iso(dateObj)); }
+function eff(l) {
+  const s = l.sub;
+  if (s && !s.cancel && s.title) return { ...l, title: s.title, teacher: s.teacher || l.teacher, room: s.room || l.room, swapped: true };
+  return l;
+}
+function isCancelled(l) { return l.cancelled || (l.sub && l.sub.cancel); }
+function sortedLessons(day) { return [...day.lessons].sort((a,b) => a.num - b.num || (a.start||"").localeCompare(b.start||"")); }
+function courseBand(title) {
+  const m = /^(\d\d)/.exec(title || ""); if (!m) return null;
+  const n = nowLocal(); const startYear = n.getMonth() >= 8 ? n.getFullYear() : n.getFullYear()-1;
+  const c = startYear - (2000 + Number(m[1])) + 1;
+  return c <= 1 ? "1" : c === 2 ? "2" : "3-4";
+}
+function whoLine(l, mode) {
+  const bits = [];
+  if (mode !== "group" && l.group) bits.push(l.group);
+  if (mode !== "teacher" && l.teacher) bits.push(l.teacher);
+  if (mode !== "room" && l.room) bits.push("каб. " + l.room);
+  return bits.join(" · ");
+}
+function titleOf(target) {
+  if (!S.dir || !target) return "";
+  return (S.dir[target[0]] || {})[target.slice(1)] || "";
+}
+
+// ---------- представления ----------
+function statusCard() {
+  const n = nowLocal(), today = iso(n);
+  const day = S.week && S.week.days.find(d => d.date === today);
+  if (!day) return null;
+  const ls = sortedLessons(day).filter(l => l.start && !isCancelled(l));
+  if (!ls.length) return card("Сегодня", "Занятий нет", "Отдыхай 🎉");
+  const m = n.getHours()*60 + n.getMinutes();
+  const cur = ls.find(l => mins(l.start) <= m && m < mins(l.end));
+  if (cur) {
+    const e = eff(cur), total = mins(cur.end)-mins(cur.start), done = m-mins(cur.start);
+    return card("Сейчас · " + cur.num + "-я пара", e.title, `до ${cur.end} · ещё ${mins(cur.end)-m} мин`, Math.round(done/total*100));
+  }
+  const next = ls.find(l => mins(l.start) > m);
+  if (next) {
+    const w = mins(next.start)-m, e = eff(next);
+    return card("Дальше · " + next.num + "-я пара", e.title, `в ${next.start} · через ${w >= 60 ? Math.floor(w/60)+" ч "+(w%60)+" мин" : w+" мин"}`);
+  }
+  return card("На сегодня всё", `Последняя пара до ${ls[ls.length-1].end}`, "Остальные дни — ниже");
+}
+function card(k, v, s, pct) {
+  return h("div", {class:"status"}, h("div", {class:"k"}, k), h("div", {class:"v"}, v), h("div", {class:"s"}, s), pct != null && h("div", {class:"bar", style:`width:${pct}%`}));
+}
+
+// Предупреждение, если публикация давно не обновлялась (сайт колледжа недоступен или сервер отдыхает).
+function staleText() {
+  const u = S.meta && S.meta.updated_at ? new Date(S.meta.updated_at) : null;
+  if (!u || isNaN(u)) return null;
+  const n = nowLocal();
+  if ((n - u) / 60000 < STALE_AFTER_MIN) return null;
+  const same = u.getFullYear() === n.getFullYear() && u.getMonth() === n.getMonth() && u.getDate() === n.getDate();
+  return `Данные обновлялись ${same ? "в " + hhmm(u) : u.getDate() + "." + String(u.getMonth()+1).padStart(2,"0") + " в " + hhmm(u)} — возможно, уже устарели.`;
+}
+
+function weekNav() {
+  const mon = mondayOf(S.date), sat = addDays(mon, 5), w = S.week;
+  const label = `${mon.getDate()} ${MON[mon.getMonth()]} — ${sat.getDate()} ${MON[sat.getMonth()]}`;
+  const sub = w && w.week_no ? `${w.week_no}-я неделя · ${w.parity}` : "";
+  const curMon = mondayOf(todayDate());
+  const isCur = curMon.getTime() === mon.getTime();
+  return h("div", {class:"weeknav"},
+    h("button", {class:"arrow", disabled: mon <= curMon, style: mon <= curMon ? "opacity:.35" : null, onclick:() => shiftWeek(-1), "aria-label":"Предыдущая неделя"}, "‹"),
+    h("button", {class:"mid", onclick:() => pickDay(todayDate())}, label, h("small", {}, (sub || " ") + (isCur ? "" : " · к текущей"))),
+    h("button", {class:"arrow", onclick:() => shiftWeek(1), "aria-label":"Следующая неделя"}, "›"));
+}
+
+function dayTabs() {
+  const mon = mondayOf(S.date), today = iso(nowLocal());
+  return h("div", {class:"days"}, [0,1,2,3,4,5].map(i => {
+    const d = addDays(mon, i), data = dayData(d);
+    const hasSub = data && data.lessons.some(l => l.sub || l.cancelled);
+    return h("button", {class:"day" + (iso(d) === iso(S.date) ? " sel" : "") + (iso(d) === today ? " today" : ""), onclick:() => pickDay(d)},
+      h("small", {}, WD[i]), h("b", {}, String(d.getDate())), hasSub && h("span", {class:"dot"}));
+  }));
+}
+
+function lessonRow(l, mode, isToday, m) {
+  const e = eff(l), cancelled = isCancelled(l);
+  let cls = "lesson" + (cancelled ? " cancel" : "");
+  if (isToday && l.start && l.end && !cancelled) { if (mins(l.start) <= m && m < mins(l.end)) cls += " now"; else if (m >= mins(l.end)) cls += " past"; }
+  const t = h("div", {class:"t"}, l.start ? [l.start+"–", h("br"), l.end] : "—", l.other_time && h("i", {}, "другая сетка"));
+  const body = h("div", {}, h("div", {class:"ti"}, cancelled ? l.title : e.title), h("div", {class:"me"}, whoLine(cancelled ? l : e, mode)));
+  if (cancelled) body.append(h("div", {class:"swap"}, h("span", {class:"tag"}, "Пара отменена")));
+  else if (e.swapped) body.append(h("div", {class:"swap"}, h("span", {class:"tag"}, "Замена"), "вместо: ", h("s", {}, l.sub.was || l.title)));
+  return h("div", {class:cls}, h("div", {class:"n"}, String(l.num)), t, body);
+}
+
+function dayView() {
+  const w = S.week, d = S.date, day = dayData(d), mode = w.mode;
+  const n = nowLocal(), isToday = iso(d) === iso(n), m = n.getHours()*60 + n.getMinutes();
+  const out = [h("div", {class:"dayhead"}, h("h2", {}, WD_FULL[(d.getDay()+6)%7]), h("span", {}, `${d.getDate()}.${String(d.getMonth()+1).padStart(2,"0")}` + (day && day.lessons.length ? ` · ${pairsWord(day.lessons.length)}` : "")))];
+  if (!day) out.push(h("div", {class:"empty"}, "Воскресенье — занятий нет 🌴"));
+  else if (!day.lessons.length) out.push(h("div", {class:"empty"}, "Занятий нет 🎉"));
+  else out.push(...sortedLessons(day).map(l => lessonRow(l, mode, isToday, m)));
+  return out;
+}
+function pairsWord(n) { const a = n % 10, b = n % 100; return `${n} ${a === 1 && b !== 11 ? "пара" : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? "пары" : "пар"}`; }
+
+function weekView() {
+  const out = [], mode = S.week.mode;
+  for (const day of S.week.days) {
+    const d = parseISO(day.date);
+    out.push(h("div", {class:"sec"}, `${WD_FULL[(d.getDay()+6)%7]}, ${d.getDate()}.${String(d.getMonth()+1).padStart(2,"0")}`));
+    if (!day.lessons.length) out.push(h("div", {class:"sub", style:"padding:4px"}, "—"));
+    else out.push(...sortedLessons(day).map(l => lessonRow(l, mode, false, 0)));
+  }
+  return out;
+}
+
+function subsView() {
+  const out = [], mode = S.week.mode;
+  for (const day of S.week.days) {
+    const ls = sortedLessons(day).filter(l => l.sub || l.cancelled);
+    if (!ls.length) continue;
+    const d = parseISO(day.date);
+    out.push(h("div", {class:"sec"}, `${WD_FULL[(d.getDay()+6)%7]}, ${d.getDate()}.${String(d.getMonth()+1).padStart(2,"0")}`));
+    out.push(...ls.map(l => lessonRow(l, mode, false, 0)));
+  }
+  if (!out.length) out.push(h("div", {class:"empty"}, "На этой неделе замен нет ✅"));
+  return out;
+}
+
+async function bellsView(host) {
+  if (!S.bells) { try { S.bells = await getJSON("data/bells.json"); } catch (e) { host.append(h("div", {class:"empty"}, errText(e))); return; } }
+  const title = (S.week && S.week.title) || titleOf(S.target) || (S.me && S.me.title);
+  const mine = S.target && S.target.startsWith("g") ? courseBand(title) : null;
+  const keys = Object.keys(S.bells).sort((a,b) => (a === mine ? -1 : b === mine ? 1 : 0));
+  host.replaceChildren();
+  for (const k of keys) {
+    const c = S.bells[k];
+    host.append(h("div", {class:"sec"}, c.title, k === mine && h("em", {}, "твой курс")));
+    for (const p of c.pairs) host.append(h("div", {class:"bell"}, h("div", {}, `${p.num} пара`, p.lunch && h("small", {}, `🍽 обед ${p.lunch[0]}–${p.lunch[1]}`)), h("b", {}, `${p.start}–${p.end}`)));
+  }
+}
+
+function settingsView() {
+  const me = S.me || {};
+  const u = S.meta && S.meta.updated_at ? new Date(S.meta.updated_at) : null;
+  const out = [h("div", {class:"sec"}, "Моя группа"), h("div", {class:"sub"}, me.title || "не выбрана"),
+    h("button", {class:"primary", onclick:() => openSearch("Найди свою группу", true)}, "Выбрать группу"),
+    h("div", {class:"sec"}, "Уведомления"),
+    h("div", {class:"sub"}, "О заменах бот пишет в чат. Включить или выключить: команда /notify в боте."),
+    h("div", {class:"sec"}, "Данные"),
+    h("div", {class:"sub"}, u && !isNaN(u) ? `Расписание обновлено ${u.getDate()}.${String(u.getMonth()+1).padStart(2,"0")} в ${hhmm(u)} (время колледжа).` : "Время обновления неизвестно.")];
+  if (tg && tg.close) out.push(h("button", {class:"primary", style:"background:var(--soft);color:var(--accent)", onclick:() => tg.close()}, "Вернуться в чат"));
+  return out;
+}
+
+// ---------- поиск по справочнику (в самой странице) ----------
+let searchSetsMe = false, searchTimer = 0;
+const norm = s => String(s).toLowerCase().replace(/ё/g, "е").replace(/[\s\-.,_]+/g, "");
+function openSearch(hint, setsMe) {
+  searchSetsMe = !!setsMe;
+  document.getElementById("sheetHint").textContent = hint || "";
+  document.getElementById("sheet").classList.add("open");
+  const q = document.getElementById("q"); q.value = ""; q.focus(); runSearch("");
+  document.getElementById("sheetClose").style.display = S.target ? "" : "none";
+}
+function closeSearch() { document.getElementById("sheet").classList.remove("open"); }
+function runSearch(text) {
+  const box = document.getElementById("results"); box.replaceChildren();
+  const q = norm(text);
+  if (!q) { box.append(h("div", {class:"empty"}, "Начни вводить: 25П-7, Файзулова или 237")); return; }
+  if (!S.dir) { box.append(h("div", {class:"empty"}, "Справочник не загрузился. Закрой и открой приложение ещё раз.")); return; }
+  const found = [];
+  for (const [p, mode] of Object.entries(MODE_OF)) {
+    for (const [id, name] of Object.entries(S.dir[p] || {})) {
+      const n = norm(name);
+      if (n === q) found.push([0, name, p, id, mode]);
+      else if (n.startsWith(q)) found.push([1, name, p, id, mode]);
+      else if (n.includes(q)) found.push([2, name, p, id, mode]);
+    }
+  }
+  found.sort((a, b) => a[0] - b[0] || a[1].localeCompare(b[1], "ru"));
+  if (!found.length) { box.append(h("div", {class:"empty"}, "Ничего не нашёл")); return; }
+  for (const [, name, p, id, mode] of found.slice(0, 30))
+    box.append(h("button", {class:"res", onclick:() => choose(p + id, name, mode)}, h("span", {class:"ic"}, ICON[mode]), h("span", {}, h("div", {class:"nm"}, name), h("div", {class:"kd"}, KIND[mode]))));
+}
+function choose(target, name, mode) {
+  closeSearch();
+  if (mode === "group" && (searchSetsMe || !(S.me && S.me.target))) {
+    S.me = { target, title: name };
+    save("me", JSON.stringify(S.me));
+  }
+  S.tab = "day";
+  openTarget(target);
+}
+
+// ---------- каркас ----------
+const TABS = [["day","📅","День"],["week","🗓","Неделя"],["subs","🔄","Замены"],["bells","🔔","Звонки"],["me","⚙️","Профиль"]];
+function render() {
+  const app = document.getElementById("app");
+  const title = (S.week && S.week.title) || titleOf(S.target) || (S.me && S.me.title) || "Расписание";
+  const own = S.me && S.me.target;
+  const kids = [h("div", {class:"topbar"}, h("div", {}, h("h1", {}, S.target ? title : "Расписание"), h("div", {class:"sub"}, S.target && own && S.target !== own ? "Чужое расписание" : "УКСиВТ")),
+    h("button", {class:"chip", onclick:() => openSearch("Группа, преподаватель или кабинет")}, "🔍 Поиск"))];
+  if (S.target && S.target !== own && own) kids.push(h("button", {class:"chip", style:"margin:10px 0 0", onclick:() => openTarget(own)}, "↩ Моё расписание"));
+
+  const needsWeek = ["day","week","subs"].includes(S.tab);
+  const stale = needsWeek ? staleText() : null;
+  if (stale) kids.push(h("div", {class:"banner"}, stale));
+  if (S.tab === "day" && S.week) kids.push(statusCard());
+  if (needsWeek && S.target) kids.push(weekNav());
+  if (S.tab === "day" && S.target && S.week) kids.push(dayTabs());
+
+  const body = h("div", {id:"body"});
+  if (S.err && needsWeek) body.append(h("div", {class:"banner"}, S.err));
+  else if (needsWeek && S.target && !S.week) body.append(h("div", {class:"empty"}, "Загружаю…"));
+  else if (!S.target && needsWeek) body.append(h("div", {class:"empty"}, "Выбери свою группу в «Профиле»"));
+  else if (S.tab === "day") body.append(...dayView());
+  else if (S.tab === "week") body.append(...weekView());
+  else if (S.tab === "subs") body.append(...subsView());
+  else if (S.tab === "bells") bellsView(body);
+  else if (S.tab === "me") body.append(...settingsView());
+  kids.push(body);
+  app.replaceChildren(...kids.filter(Boolean));
+
+  document.getElementById("tabs").replaceChildren(...TABS.map(([id, ic, label]) =>
+    h("button", {class:S.tab === id ? "on" : "", onclick:() => { S.tab = id; render(); window.scrollTo(0,0); }}, h("span", {}, ic), label)));
+}
+
+async function start() {
+  document.getElementById("sheetClose").addEventListener("click", closeSearch);
+  document.getElementById("q").addEventListener("input", e => { clearTimeout(searchTimer); searchTimer = setTimeout(() => runSearch(e.target.value), 150); });
+  S.date = todayDate();
+  render();
+  const [dir, meta, me] = await Promise.all([
+    getJSON("data/directory.json").catch(() => null),
+    getJSON("data/meta.json").catch(() => null),
+    saved("me"),
+  ]);
+  S.dir = dir; S.meta = meta;
+  try { S.me = me ? JSON.parse(me) : null; } catch (e) { S.me = null; }
+  if (S.me && S.me.target) openTarget(S.me.target);
+  else { S.tab = "day"; render(); openSearch("Привет! Найди свою группу, например 25П-7", true); }
+}
+start();
+</script>
+</body>
+</html>
