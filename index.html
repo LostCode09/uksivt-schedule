@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Расписание УКСиВТ</title>
+<meta name="description" content="Расписание занятий УКСиВТ для групп, преподавателей и кабинетов: пары, замены и звонки.">
 <meta name="theme-color" content="#f4f6fb" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
@@ -29,7 +30,7 @@ window.__tgReady = new Promise(function (resolve) {
 :root { --fb-bg:#f4f6fb; --fb-card:#ffffff; --fb-text:#0f172a; --fb-hint:#64748b; --fb-accent:#2563eb; --fb-accent-text:#ffffff;
   --fb-line:rgba(100,116,139,.22); --fb-soft:#e4ebfd; --fb-warn-bg:#fdeadf; --fb-glow:rgba(37,99,235,.4); --fb-bar:rgba(244,246,251,.9); }
 @media (prefers-color-scheme: dark) {
-  :root { --fb-bg:#0b1220; --fb-card:#16213a; --fb-text:#f1f5f9; --fb-hint:#94a3b8; --fb-accent:#3b82f6;
+  :root { --fb-bg:#0b1220; --fb-card:#16213a; --fb-text:#f1f5f9; --fb-hint:#94a3b8; --fb-accent:#93c5fd; --fb-accent-text:#0b1220;
     --fb-line:rgba(148,163,184,.2); --fb-soft:#1c2a4d; --fb-warn-bg:#2b1f1b; --fb-glow:rgba(59,130,246,.45); --fb-bar:rgba(11,18,32,.9); }
 }
 :root {
@@ -102,7 +103,7 @@ h1 { font-size: 26px; margin: 18px 0 2px; letter-spacing: -0.02em; }
 .lesson .me { color: var(--hint); font-size: 13px; margin-top: 3px; }
 .lesson.now { background: var(--soft); border-radius: 14px; padding-left: 10px; padding-right: 10px; border-bottom-color: transparent; }
 .lesson.now .n { color: var(--accent); }
-.lesson.past { opacity: .5; }
+.lesson.past { opacity: .85; }
 .lesson.cancel .ti { text-decoration: line-through; color: var(--hint); }
 .swap { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--warn-bg); border-left: 3px solid var(--warn); font-size: 13px; }
 .swap s { color: var(--hint); }
@@ -167,7 +168,7 @@ h1 { font-size: 26px; margin: 18px 0 2px; letter-spacing: -0.02em; }
 </style>
 </head>
 <body>
-<div id="app"></div>
+<main id="app"></main>
 <div class="sheet" id="sheet"><div class="in">
   <button class="close" id="sheetClose">Закрыть</button>
   <div id="sheetHint" class="sub" style="margin-bottom:8px"></div>
@@ -265,28 +266,36 @@ function errText(e) {
   return "Не получилось загрузить расписание. Проверь интернет и попробуй ещё раз.";
 }
 
+let weekRequest = 0;
 async function loadWeek(target, date) {
-  S.week = await getJSON(`data/w/${encodeURIComponent(target)}/${iso(mondayOf(date))}.json`);
+  const request = ++weekRequest;
+  const monday = iso(mondayOf(date));
+  try {
+    const week = await getJSON(`data/w/${encodeURIComponent(target)}/${monday}.json`);
+    if (request !== weekRequest) return;  // пользователь уже выбрал другую цель или неделю
+    S.week = week;
+  } catch (e) {
+    if (request === weekRequest) S.err = errText(e);
+  }
+  if (request === weekRequest) render();
 }
 
 async function openTarget(target, date) {
   S.target = target; S.date = date || todayDate(); S.err = null; S.week = null;
   render();
-  try { await loadWeek(target, S.date); } catch (e) { S.err = errText(e); }
-  render();
+  await loadWeek(target, S.date);
 }
 function todayDate() { const n = nowLocal(); const d = new Date(n.getFullYear(), n.getMonth(), n.getDate()); return d.getDay() === 0 ? addDays(d, 1) : d; }
 
 async function shiftWeek(delta) {
   S.date = addDays(S.date, 7*delta); S.week = null; S.err = null; render();
-  try { await loadWeek(S.target, S.date); } catch (e) { S.err = errText(e); }
-  render();
+  await loadWeek(S.target, S.date);
 }
 async function pickDay(d) {
   S.date = d;
   if (!S.week || mondayOf(d).getTime() !== parseISO(S.week.week_start).getTime()) {
     S.week = null; S.err = null; render();
-    try { await loadWeek(S.target, d); } catch (e) { S.err = errText(e); }
+    await loadWeek(S.target, d);
   }
   render();
 }
