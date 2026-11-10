@@ -295,7 +295,7 @@ async function pickDay(d) {
 function dayData(dateObj) { return S.week && S.week.days.find(x => x.date === iso(dateObj)); }
 function eff(l) {
   const s = l.sub;
-  if (s && !s.cancel && s.title) return { ...l, title: s.title, teacher: s.teacher || l.teacher, room: s.room || l.room, swapped: true };
+  if (s && !s.cancel && s.title) return { ...l, title: s.title, teacher: s.teacher || l.teacher, room: s.room || l.room, group: s.group || l.group, swapped: true };
   return l;
 }
 function isCancelled(l) { return l.cancelled || (l.sub && l.sub.cancel); }
@@ -323,7 +323,7 @@ function statusCard() {
   const n = nowLocal(), today = iso(n);
   const day = S.week && S.week.days.find(d => d.date === today);
   if (!day) return null;
-  const ls = sortedLessons(day).filter(l => l.start && !isCancelled(l));
+  const ls = sortedLessons(day).filter(l => l.start && l.end && !isCancelled(l)).sort((a,b) => mins(a.start)-mins(b.start) || mins(a.end)-mins(b.end));
   if (!ls.length) return card("Сегодня", "Занятий нет", "Отдыхай 🎉");
   const m = n.getHours()*60 + n.getMinutes();
   const cur = ls.find(l => mins(l.start) <= m && m < mins(l.end));
@@ -336,7 +336,8 @@ function statusCard() {
     const w = mins(next.start)-m, e = eff(next);
     return card("Дальше · " + next.num + "-я пара", e.title, `в ${next.start} · через ${w >= 60 ? Math.floor(w/60)+" ч "+(w%60)+" мин" : w+" мин"}`);
   }
-  return card("На сегодня всё", `Последняя пара до ${ls[ls.length-1].end}`, "Остальные дни — ниже");
+  const last = ls.reduce((a,b) => mins(a.end) >= mins(b.end) ? a : b);
+  return card("На сегодня всё", `Последняя пара до ${last.end}`, "Остальные дни — ниже");
 }
 function card(k, v, s, pct) {
   return h("div", {class:"status"}, h("div", {class:"k"}, k), h("div", {class:"v"}, v), h("div", {class:"s"}, s), pct != null && h("div", {class:"bar", style:`width:${pct}%`}));
@@ -368,7 +369,7 @@ function dayTabs() {
   const mon = mondayOf(S.date), today = iso(nowLocal());
   return h("div", {class:"days"}, [0,1,2,3,4,5].map(i => {
     const d = addDays(mon, i), data = dayData(d);
-    const hasSub = data && data.lessons.some(l => l.sub || l.cancelled);
+    const hasSub = data && data.lessons.some(l => l.sub || l.cancelled || l.additional);
     return h("button", {class:"day" + (iso(d) === iso(S.date) ? " sel" : "") + (iso(d) === today ? " today" : ""), onclick:() => pickDay(d)},
       h("small", {}, WD[i]), h("b", {}, String(d.getDate())), hasSub && h("span", {class:"dot"}));
   }));
@@ -382,6 +383,9 @@ function lessonRow(l, mode, isToday, m) {
   const body = h("div", {}, h("div", {class:"ti"}, cancelled ? l.title : e.title), h("div", {class:"me"}, whoLine(cancelled ? l : e, mode)));
   if (cancelled) body.append(h("div", {class:"swap"}, h("span", {class:"tag"}, "Пара отменена")));
   else if (e.swapped) body.append(h("div", {class:"swap"}, h("span", {class:"tag"}, "Замена"), "вместо: ", h("s", {}, l.sub.was || l.title)));
+  else if (l.additional) body.append(h("div", {class:"swap"}, h("span", {class:"tag"}, "Дополнительная пара")));
+  if (l.only_on) body.append(h("div", {class:"swap"}, l.only_on));
+  if (l.note) body.append(h("div", {class:"swap"}, l.note));
   return h("div", {class:cls}, h("div", {class:"n"}, String(l.num)), t, body);
 }
 
@@ -411,7 +415,7 @@ function weekView() {
 function subsView() {
   const out = [], mode = S.week.mode;
   for (const day of S.week.days) {
-    const ls = sortedLessons(day).filter(l => l.sub || l.cancelled);
+    const ls = sortedLessons(day).filter(l => l.sub || l.cancelled || l.additional);
     if (!ls.length) continue;
     const d = parseISO(day.date);
     out.push(h("div", {class:"sec"}, `${WD_FULL[(d.getDay()+6)%7]}, ${d.getDate()}.${String(d.getMonth()+1).padStart(2,"0")}`));
