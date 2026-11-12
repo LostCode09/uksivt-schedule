@@ -31,6 +31,7 @@ window.__tgReady = new Promise(function (resolve) {
   --fb-line:rgba(100,116,139,.22); --fb-soft:#e4ebfd; --fb-warn-bg:#fdeadf; --fb-glow:rgba(37,99,235,.4); --fb-bar:rgba(244,246,251,.9); }
 @media (prefers-color-scheme: dark) {
   :root { --fb-bg:#0b1220; --fb-card:#16213a; --fb-text:#f1f5f9; --fb-hint:#94a3b8; --fb-accent:#93c5fd; --fb-accent-text:#0b1220;
+    --fb-warn:#fdba74; --fb-bad:#f87171;
     --fb-line:rgba(148,163,184,.2); --fb-soft:#1c2a4d; --fb-warn-bg:#2b1f1b; --fb-glow:rgba(59,130,246,.45); --fb-bar:rgba(11,18,32,.9); }
 }
 :root {
@@ -44,9 +45,9 @@ window.__tgReady = new Promise(function (resolve) {
   --soft: var(--fb-soft);
   --glow: var(--fb-glow);
   --bar: var(--fb-bar);
-  --warn: #ea580c;
+  --warn: var(--fb-warn, #ea580c);
   --warn-bg: var(--fb-warn-bg);
-  --bad: #dc2626;
+  --bad: var(--fb-bad, #dc2626);
   --ok: #16a34a;
 }
 @supports (color: color-mix(in srgb, red 50%, blue)) {
@@ -166,6 +167,7 @@ h1 { font-size: 26px; margin: 18px 0 2px; letter-spacing: -0.02em; }
   .status { margin: 8px 0; padding: 10px 14px; } h1 { margin-top: 10px; }
 }
 </style>
+<link rel="stylesheet" href="liquid.css">
 </head>
 <body>
 <main id="app"></main>
@@ -398,6 +400,35 @@ function lessonRow(l, mode, isToday, m) {
   return h("div", {class:cls}, h("div", {class:"n"}, String(l.num)), t, body);
 }
 
+function nextLessonCard(day, isToday, m) {
+  const lessons = day ? sortedLessons(day).filter(l => l.start && l.end && !isCancelled(l)).sort((a,b) => mins(a.start)-mins(b.start)) : [];
+  const next = isToday ? lessons.find(l => mins(l.start) > m) : lessons[0];
+  if (!next) {
+    const last = lessons.length ? lessons.reduce((a,b) => mins(a.end) >= mins(b.end) ? a : b) : null;
+    return h("div", {class:"sidecard"}, h("span", {class:"k"}, "Дальше"),
+      h("div", {class:"title"}, lessons.length ? "На сегодня всё" : "Занятий нет"),
+      h("div", {class:"meta"}, last ? `Последняя пара до ${last.end}` : "Можно отдыхать"));
+  }
+  const e = eff(next);
+  return h("div", {class:"sidecard"}, h("span", {class:"k"}, "Дальше"),
+    h("div", {class:"title"}, e.title),
+    h("div", {class:"meta"}, `${next.num} пара · ${whoLine(e, S.week.mode)}`),
+    h("div", {class:"pill"}, `${next.start}–${next.end}`));
+}
+
+function substitutionsCard(day) {
+  const items = day ? sortedLessons(day).filter(l => l.sub || l.cancelled || l.additional) : [];
+  if (!items.length) return h("div", {class:"sidecard"}, h("span", {class:"k"}, "Замены"),
+    h("div", {class:"title"}, "Замен нет"), h("div", {class:"meta"}, "На этот день изменений не опубликовано"));
+  const l = items[0], e = eff(l);
+  const title = l.additional ? "Дополнительная пара" : isCancelled(l) ? "Отмена пары" : "Замена пары";
+  const details = l.additional ? (l.only_on || l.note || "Разовое занятие") : isCancelled(l) ? l.title : `${l.title} → ${e.title}`;
+  return h("div", {class:"sidecard warn"}, h("span", {class:"k"}, `Замены · ${items.length}`),
+    h("div", {class:"title"}, title), h("div", {class:"meta"}, details),
+    h("div", {class:"meta"}, whoLine(e, S.week.mode)),
+    h("div", {class:"pill"}, `${l.num} пара · ${l.start || "время не указано"}`));
+}
+
 function dayView() {
   const w = S.week, d = S.date, day = dayData(d), mode = w.mode;
   const n = nowLocal(), isToday = iso(d) === iso(n), m = n.getHours()*60 + n.getMinutes();
@@ -405,7 +436,7 @@ function dayView() {
   if (!day) out.push(h("div", {class:"empty"}, "Воскресенье — занятий нет 🌴"));
   else if (!day.lessons.length) out.push(h("div", {class:"empty"}, "Занятий нет 🎉"));
   else out.push(...sortedLessons(day).map(l => lessonRow(l, mode, isToday, m)));
-  return out;
+  return [h("div", {class:"daymain"}, out), h("div", {class:"dayside"}, [nextLessonCard(day, isToday, m), substitutionsCard(day)])];
 }
 function pairsWord(n) { const a = n % 10, b = n % 100; return `${n} ${a === 1 && b !== 11 ? "пара" : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? "пары" : "пар"}`; }
 
@@ -539,7 +570,7 @@ function render() {
   const app = document.getElementById("app");
   const title = (S.week && S.week.title) || titleOf(S.target) || (S.me && S.me.title) || "Расписание";
   const own = S.me && S.me.target;
-  const kids = [h("div", {class:"topbar"}, h("div", {}, h("h1", {}, S.target ? title : "Расписание"), h("div", {class:"sub"}, S.target && own && S.target !== own ? "Чужое расписание" : "УКСиВТ")),
+  const kids = [h("div", {class:"topbar"}, h("div", {}, h("div", {class:"eyebrow"}, "Моя группа"), h("h1", {}, S.target ? title : "Расписание"), h("div", {class:"sub"}, S.target && own && S.target !== own ? "Чужое расписание" : "УКСиВТ")),
     h("button", {class:"chip", onclick:() => openSearch("Группа, преподаватель или кабинет")}, "🔍 Поиск"))];
   if (S.target && S.target !== own && own) kids.push(h("button", {class:"chip", style:"margin:10px 0 0", onclick:() => openTarget(own)}, "↩ Моё расписание"));
 
@@ -548,10 +579,13 @@ function render() {
   const stale = needsWeek ? staleText() : null;
   if (stale) kids.push(h("div", {class:"banner"}, stale));
   if (S.tab === "day" && S.week) kids.push(statusCard());
-  if (needsWeek && S.target) kids.push(weekNav());
-  if (S.tab === "day" && S.target && S.week) kids.push(dayTabs());
+  if (needsWeek && S.target) {
+    const weekParts = [weekNav()];
+    if (S.tab === "day" && S.week) weekParts.push(dayTabs());
+    kids.push(h("section", {class:"weekglass"}, weekParts));
+  }
 
-  const body = h("div", {id:"body", class: S.tab === "week" ? "weekgrid" : ""});
+  const body = h("div", {id:"body", class: S.tab === "week" ? "weekgrid" : S.tab === "day" ? "daygrid" : ""});
   if (S.err && needsWeek) body.append(h("div", {class:"banner"}, S.err));
   else if (needsWeek && S.target && !S.week) body.append(h("div", {class:"empty"}, "Загружаю…"));
   else if (!S.target && needsWeek) body.append(h("div", {class:"empty"}, "Выбери свою группу в «Профиле»"));

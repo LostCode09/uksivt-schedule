@@ -1,9 +1,9 @@
 // Сервис-воркер: сайт открывается и без интернета — с последним расписанием, которое ты смотрел.
 // Стратегия «сначала сеть, при неудаче кеш»: онлайн всегда свежие данные, офлайн — сохранённые.
-const VERSION = "v2";
+const VERSION = "v4";
 const SHELL = `shell-${VERSION}`;
 const DATA = `data-${VERSION}`;
-const SHELL_FILES = ["./", "index.html", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
+const SHELL_FILES = ["./", "index.html", "liquid.css", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 const MAX_DATA_ENTRIES = 80;   // недели, которые ты открывал; старые вытесняются
 
 self.addEventListener("install", event => {
