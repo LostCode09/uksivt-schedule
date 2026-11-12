@@ -354,6 +354,15 @@ function card(k, v, s, pct) {
   return h("div", {class:"status"}, h("div", {class:"k"}, k), h("div", {class:"v"}, v), h("div", {class:"s"}, s), pct != null && h("div", {class:"bar", style:`width:${pct}%`}));
 }
 
+// Время последней публикации. Показываем всегда, а не только когда данные устарели.
+function updatedText() {
+  const u = S.meta && S.meta.updated_at ? new Date(S.meta.updated_at) : null;
+  if (!u || isNaN(u)) return "";
+  const n = nowLocal();
+  const same = u.getFullYear() === n.getFullYear() && u.getMonth() === n.getMonth() && u.getDate() === n.getDate();
+  return same ? `обновлено в ${hhmm(u)}` : `обновлено ${u.getDate()}.${String(u.getMonth()+1).padStart(2,"0")} в ${hhmm(u)}`;
+}
+
 // Предупреждение, если публикация давно не обновлялась (сайт колледжа недоступен или сервер отдыхает).
 function staleText() {
   const u = S.meta && S.meta.updated_at ? new Date(S.meta.updated_at) : null;
@@ -570,7 +579,8 @@ function render() {
   const app = document.getElementById("app");
   const title = (S.week && S.week.title) || titleOf(S.target) || (S.me && S.me.title) || "Расписание";
   const own = S.me && S.me.target;
-  const kids = [h("div", {class:"topbar"}, h("div", {}, h("div", {class:"eyebrow"}, "Моя группа"), h("h1", {}, S.target ? title : "Расписание"), h("div", {class:"sub"}, S.target && own && S.target !== own ? "Чужое расписание" : "УКСиВТ")),
+  const updated = updatedText();
+  const kids = [h("div", {class:"topbar"}, h("div", {}, h("div", {class:"eyebrow"}, "Моя группа"), h("h1", {}, S.target ? title : "Расписание"), h("div", {class:"sub"}, (S.target && own && S.target !== own ? "Чужое расписание" : "УКСиВТ") + (updated ? " · " + updated : ""))),
     h("button", {class:"chip", onclick:() => openSearch("Группа, преподаватель или кабинет")}, "🔍 Поиск"))];
   if (S.target && S.target !== own && own) kids.push(h("button", {class:"chip", style:"margin:10px 0 0", onclick:() => openTarget(own)}, "↩ Моё расписание"));
 

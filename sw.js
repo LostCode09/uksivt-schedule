@@ -1,6 +1,6 @@
 // Сервис-воркер: сайт открывается и без интернета — с последним расписанием, которое ты смотрел.
 // Стратегия «сначала сеть, при неудаче кеш»: онлайн всегда свежие данные, офлайн — сохранённые.
-const VERSION = "v4";
+const VERSION = "v5";
 const SHELL = `shell-${VERSION}`;
 const DATA = `data-${VERSION}`;
 const SHELL_FILES = ["./", "index.html", "liquid.css", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
